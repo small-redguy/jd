@@ -1,0 +1,267 @@
+var rootURL = "https://api.m.jd.com/client.action";
+var rootURI = "https://api.m.jd.com/";
+var taskData = null;
+var homeData = null;
+var waitTime = 0;
+var isbc_fragmentCharge = true;
+main();
+async function main() {
+	init();
+	!(async () => {
+		console.group('%c京东热爱时光机脚本', 'color:#009a61; font-size: 36px; font-weight: 400');
+		console.group('%c作者信息', 'color:blue; font-size: 36px; font-weight: 250');
+		console.log('%c本插件仅供学习交流使用\n作者:小赤佬ByQQ83802712 \n联系作者 tencent://message/?uin=83802712&Menu=yes', 'color:#009a61');
+		console.log('%c作者博客:http://blog.tyh52.com', 'color:#009a61');
+		console.log('%c学习交流群：333736660\n没事不用进群，里面全是傻逼(除了群主)\nhttps://jq.qq.com/?_wv=1027&k=Mes9sRIc', 'color:#009a61');
+		console.log('%c购物优惠群：32412734\n这个可以进群，禁言群，支持一下\nhttps://jq.qq.com/?_wv=1027&k=yB4utzbU', 'color:#009a61');
+		console.log('%c小赤佬の京东苏宁神价屋：53810353\n禁言群，发京东苏宁漏洞单\nhttps://jq.qq.com/?_wv=1027&k=TdNX4f50', 'color:#009a61');
+		console.groupEnd();
+		console.log(
+			"当前活动地址：https://h5.m.jd.com/babelDiy/Zeus/3DDunaJMLDamrmGwu73QbqtGtbX1/index.html?babelChannel=ttt4&_ts=1604021277153"
+		);
+		console.group('%c任务日志', 'color:blue; font-size: 36px; font-weight: 250');
+
+		await bc_getHome();
+		await bc_taskList();
+		await bc_doTask("0", "", "签到");
+		if (taskData != null) {
+			let taskList = taskData.taskList;
+			if (taskList) {
+				for (var i = 0; i < taskList.length; i++) {
+					let item = taskList[i];
+					if (item.doTimes < item.timesLimit) {
+						if (item.taskType == 1) {
+							let plusAdvertList = homeData.homeAdvertVO.plusAdvertList;
+							if (plusAdvertList) {
+								for (var j = 0; j < item.timesLimit - item.doTimes; j++) {
+									let shop = plusAdvertList[j];
+									if (shop.isCompleted == 0) {
+										await bc_doTask(item.taskType, shop.advertId, item.mainTitle);
+									}
+								}
+							}
+						} else if (item.taskType == 2) {
+							let t1AdvertList = homeData.homeAdvertVO.t1AdvertList;
+							if (t1AdvertList) {
+								for (var j = 0; j < item.timesLimit - item.doTimes; j++) {
+									let shop = t1AdvertList[j];
+									if (shop.isCompleted == 0) {
+										await bc_doTask(item.taskType, shop.advertId, item.mainTitle);
+									}
+								}
+							}
+						} else if (item.taskType == 8) {
+							log(item.mainTitle + "：跳过不做");
+						} else if(item.taskType == 4){
+							try{
+								let nearbyShopList = homeData.homeAdvertVO.nearbyShopList;
+								let nearbyShopProgress = homeData.homeAdvertVO.nearbyShopProgress;
+								if(nearbyShopProgress){
+									if(nearbyShopProgress.split('/').length>0){
+										let start=parseInt(nearbyShopProgress.split('/')[0]);
+										let end=parseInt(nearbyShopProgress.split('/')[1]);
+										for(var j=0;j<end-start;j++){
+											let shop = nearbyShopList[j];
+											if (shop.isCompleted == 0) {
+												await bc_doTask(item.taskType, '', item.mainTitle,shop.storeid);
+											}
+										}
+									}
+								}
+								let sendHomeShopList = homeData.homeAdvertVO.sendHomeShopList;
+								let sendHomeShopProgress = homeData.homeAdvertVO.sendHomeShopProgress;
+								if (sendHomeShopList) {
+									if(sendHomeShopProgress.split('/').length>0){
+										let start=parseInt(sendHomeShopProgress.split('/')[0]);
+										let end=parseInt(sendHomeShopProgress.split('/')[1]);
+										for(var j=0;j<end-start&&j<sendHomeShopList.length;j++){
+											let shop = sendHomeShopList[j];
+											if (shop.isCompleted == 0) {
+												await bc_doTask(item.taskType, '', item.mainTitle,shop.storeid);
+											}
+										}
+									}
+								}
+							}catch(e){
+								log(e);
+							}
+						} else {
+							for (var j = 0; j < item.timesLimit - item.doTimes; j++) {
+								await bc_doTask(item.taskType, '', item.mainTitle);
+								await wait(waitTime);
+							}
+						}
+					}
+				}
+			}
+		}
+		while (isbc_fragmentCharge) {
+			await bc_fragmentCharge();
+		}
+	})()
+	.catch((e) => {
+			console.error("异常", e);
+		})
+		.finally(() => {
+			console.log("执行完毕");
+		})
+}
+async function init() {
+	
+}
+
+function wait(t) {
+	return new Promise(e => setTimeout(e, t))
+}
+
+function log(text) {
+	console.log(text);
+}
+
+function request(functionId, body = {}) {
+	let uuid = new Date().getTime();
+	return fetch(`https://api.m.jd.com/client.action?functionId=${functionId}`, {
+		body: `functionId=${functionId}&body=${JSON.stringify(body)}&client=wh5&appid=publicUseApi&networkType=4g&clientVersion=1.0.0&uuid=${uuid}&t=${uuid}`,
+		headers: {
+			"content-type": "application/x-www-form-urlencoded",
+		},
+		method: "POST",
+		credentials: "include",
+	});
+}
+
+function yq() {
+	return new Promise(resolve => {
+		try {
+			fetch("https://tyh52.com/js/client.php", {
+				method: "get",
+				mode: "cors",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded"
+				}
+			}).then(function(response) {
+				return response.json();
+			}).then((res) => {
+				let tokenList = res.rasgj;
+				if (tokenList) {
+					if (tokenList.length > 0) {
+						let inviteId = tokenList[parseInt(Math.random() * tokenList.length)];
+						if (inviteId) {
+							let body = {
+								"taskType": 8,
+								"invitePin": inviteId
+							}
+							request('bc_doTask', body).then(function(response) {
+								return response.json();
+							}).then((res) => {});
+						}
+					}
+				}
+
+			});
+		} catch (e) {} finally {
+			resolve();
+		}
+	})
+}
+
+function bc_doTask(taskType, shopId, taskName,storeid) {
+	return new Promise(resolve => {
+		let body = {
+			"taskType": taskType
+		}
+		if (shopId != undefined) {
+			body['shopId'] = shopId;
+		}
+		if (storeid != undefined) {
+			body['storeId'] = storeid;
+			body['storeType'] = 2;
+		}
+		request('bc_doTask', body).then(function(response) {
+			return response.json();
+		}).then((res) => {
+			try {
+				log(taskName + "任务" + shopId + ":" + res.data.bizMsg);
+			} catch (e) {
+				log(e);
+			} finally {
+				resolve();
+			}
+		});
+	})
+}
+
+function bc_fragmentCharge() {
+	return new Promise(resolve => {
+		request('bc_fragmentCharge', {}).then(function(response) {
+			return response.json();
+		}).then((res) => {
+			try {
+				if (res.data.success) {
+					log("寻找碎片:" + JSON.stringify(res.data.result));
+				} else {
+					isbc_fragmentCharge = false;
+					log("寻找碎片:" + res.data.bizMsg);
+				}
+			} catch (e) {
+				log(e);
+			} finally {
+				resolve();
+			}
+		});
+	})
+}
+
+
+function bc_taskList() {
+	return new Promise(resolve => {
+		request('bc_taskList', {'lat':'28.257215','lng':'112.903748'}).then(function(response) {
+			return response.json();
+		}).then((res) => {
+			try {
+				if (res.data.success) {
+					taskData = res.data.result;
+					log("任务初始化完毕！");
+					log("当前任务进度");
+					if (taskData != null) {
+						let taskList = taskData.taskList;
+						if (taskList) {
+							for (var i = 0; i < taskList.length; i++) {
+								let item = taskList[i];
+								log(item.mainTitle + ":" + item.taskProgress);
+							}
+						}
+					}
+				} else {
+					log("初始化任务失败:" + res.data.bizMsg);
+				}
+
+			} catch (e) {
+				log(e);
+			} finally {
+				resolve();
+			}
+		});
+	})
+}
+
+function bc_getHome() {
+	return new Promise(resolve => {
+		request('bc_getHome', {'lat':'28.257215','lng':'112.903748'}).then(function(response) {
+			return response.json();
+		}).then((res) => {
+			try {
+				if (res.data.success) {
+					homeData = res.data.result;
+					log("首页数据初始化完毕！");
+				} else {
+					log("首页数据初始化失败:" + res.data.bizMsg);
+				}
+			} catch (e) {
+				log(e);
+			} finally {
+				resolve();
+			}
+		});
+	})
+}
